@@ -40,13 +40,14 @@ struct rs_codec_parms {
     int k;
     int n;
     unsigned char *enc_matrix ;
+    unsigned char *dec_matrix ;
 };
 
 /* Create an 'rs-codec' */
-extern struct rs_codec_params* create_rs_codec(int k, int n);
+extern struct rs_codec_parms* create_rs_codec(int k, int n);
 
 /* Free the specified 'rs-codec' */
-extern void rs_codec_free(struct rs_codec_params* params);
+extern void rs_codec_free(struct rs_codec_parms* codec);
 
 /*
  * rs_codec_encode accepts as input pointers to n data packets of size,

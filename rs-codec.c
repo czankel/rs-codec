@@ -294,7 +294,7 @@ static void matmul(unsigned char *a,
  * (Gauss-Jordan, adapted from Numerical Recipes in C)
  * Return non-zero if singular.
  */
-
+#if 0
 static int invert_mat(unsigned char *src, int k)
 {
   unsigned char c, *p ;
@@ -331,17 +331,16 @@ static int invert_mat(unsigned char *src, int k)
     for (row = 0 ; row < k ; row++) {
       if (ipiv[row] != 1) {
         for (ix = 0 ; ix < k ; ix++) {
-          DEB( pivloops++ ; )
-              if (ipiv[ix] == 0) {
-                if (src[row*k + ix] != 0) {
-                  irow = row ;
-                  icol = ix ;
-                  goto found_piv ;
-                }
-              } else if (ipiv[ix] > 1) {
-                fprintf(stderr, "singular matrix\n");
-                goto fail ; 
-              }
+          if (ipiv[ix] == 0) {
+            if (src[row*k + ix] != 0) {
+              irow = row ;
+              icol = ix ;
+              goto found_piv ;
+            }
+          } else if (ipiv[ix] > 1) {
+            fprintf(stderr, "singular matrix\n");
+            goto fail ; 
+          }
         }
       }
     }
@@ -375,8 +374,7 @@ found_piv:
        * this is done often , but optimizing is not so
        * fruitful, at least in the obvious ways (unrolling)
        */
-      DEB( pivswaps++ ; )
-          c = inverse[ c ] ;
+      c = inverse[ c ] ;
       pivot_row[icol] = 1 ;
       for (ix = 0 ; ix < k ; ix++ )
         pivot_row[ix] = gf_mul(c, pivot_row[ix] );
@@ -416,7 +414,7 @@ found_piv:
 fail:
   return error ;
 }
-
+#endif
 
 /*
  * fast code for inverting a vandermonde matrix.
@@ -486,7 +484,7 @@ static int invert_vdm(unsigned char *src, int k)
 /*
  * shuffle move src packets in their position
  */
-
+#if 0
 static int shuffle(unsigned char *pkt[], int index[], int k)
 {
   int i;
@@ -521,7 +519,8 @@ static unsigned char * build_decode_matrix(struct rs_codec_parms *code,
                                            int index[])
 {
   int i , k = code->k ;
-  unsigned char *p, *matrix = NEW_GF_MATRIX(k, k);
+  unsigned char *matrix = code->dec_matrix;
+  unsigned char *p;
 
   for (i = 0, p = matrix ; i < k ; i++, p += k ) {
     if (index[i] < k) {
@@ -544,27 +543,94 @@ static unsigned char * build_decode_matrix(struct rs_codec_parms *code,
   }
   return matrix ;
 }
-
+#endif
 
 
 // ---------------------------------------------------------------------------
 
 /////////////////////////
 
-static int fec_initialized = 0 ;
+static int rs_codec_initialized = 0 ;
 static void
-init_fec()
+rs_codec_init()
 {
-  TICK(ticks[0]);
   generate_gf();
-  TOCK(ticks[0]);
-  DDB(fprintf(stderr, "generate_gf took %ldus\n", ticks[0]);)
-      TICK(ticks[0]);
   init_mul_table();
-  TOCK(ticks[0]);
-  DDB(fprintf(stderr, "init_mul_table took %ldus\n", ticks[0]);)
-      fec_initialized = 1 ;
 }
+
+/*
+ * create a new encoder, returning a descriptor. This contains k,n and
+ * the encoding matrix.
+ */
+struct rs_codec_parms *
+rs_codec_new(int k, int n)
+{
+  int row, col ;
+  unsigned char *p, *tmp_m ;
+
+  struct rs_codec_parms *codec ;
+
+  if (rs_codec_initialized == 0)
+    rs_codec_init();
+
+  if (k > GF_SIZE + 1 || n > GF_SIZE + 1 || k > n ) {
+    fprintf(stderr, "Invalid parameters k %d n %d GF_SIZE %d\n",
+            k, n, GF_SIZE );
+    return NULL ;
+  }
+
+  codec = malloc(sizeof(struct rs_codec_parms));
+  codec->k = k ;
+  codec->n = n ;
+  codec->enc_matrix = malloc(n * k * sizeof(unsigned char*));
+  codec->dec_matrix = malloc(k * k * sizeof(unsigned char*));
+
+
+  /*
+   * fill the matrix with powers of field elements, starting from 0.
+   * The first row is special, cannot be computed with exp. table.
+   */
+  tmp_m = malloc(256 * 256 * sizeof(unsigned char));
+  if (tmp_m != 0)
+    goto errout;
+
+  tmp_m[0] = 1 ;
+  for (col = 1; col < k ; col++)
+    tmp_m[col] = 0 ;
+  for (p = tmp_m + k, row = 0; row < n-1 ; row++, p += k) {
+    for ( col = 0 ; col < k ; col ++ )
+      p[col] = gf_exp[modnn(row*col)];
+  }
+
+  /*
+   * quick code to build systematic matrix: invert the top
+   * k*k vandermonde matrix, multiply right the bottom n-k rows
+   * by the inverse, and construct the identity matrix at the top.
+   */
+  invert_vdm(tmp_m, k); /* much faster than invert_mat */
+  matmul(tmp_m + k*k, tmp_m, codec->enc_matrix + k*k, n - k, k, k);
+  /*
+   * the upper matrix is I so do not bother with a slow multiply
+   */
+  bzero(codec->enc_matrix, k*k*sizeof(unsigned char) );
+  for (p = codec->enc_matrix, col = 0 ; col < k ; col++, p += k+1 )
+    *p = 1 ;
+  free(tmp_m);
+  return codec ;
+
+errout:
+  if (tmp_m != 0)
+    free(tmp_m);
+  if (codec != 0)
+  {
+    if (codec->enc_matrix != 0)
+      free(codec->enc_matrix);
+    if (codec->dec_matrix != 0)
+      free(codec->dec_matrix);
+  }
+  return 0;
+}
+
 
 /*
  * This section contains the proper FEC encoding/decoding routines.
@@ -573,77 +639,18 @@ init_fec()
  */
 
 void
-fec_free(struct rs_codec_parms *p)
+rs_codec_free(struct rs_codec_parms *codec)
 {
-    if (p==NULL ||
-       p->magic != ( ( (FEC_MAGIC ^ p->k) ^ p->n) ^ (int)(p->enc_matrix)) ) {
-	fprintf(stderr, "bad parameters to fec_free\n");
-	return ;
-    }
-    free(p->enc_matrix);
-    free(p);
+  if (codec != 0)
+  {
+    if (codec->enc_matrix != 0)
+      free(codec->enc_matrix);
+    if (codec->dec_matrix != 0)
+      free(codec->dec_matrix);
+    free(codec);
+  }
 }
 
-/*
- * create a new encoder, returning a descriptor. This contains k,n and
- * the encoding matrix.
- */
-struct rs_codec_parms *
-fec_new(int k, int n)
-{
-    int row, col ;
-    unsigned char *p, *tmp_m ;
-
-    struct rs_codec_parms *retval ;
-
-    if (fec_initialized == 0)
-	init_fec();
-
-    if (k > GF_SIZE + 1 || n > GF_SIZE + 1 || k > n ) {
-	fprintf(stderr, "Invalid parameters k %d n %d GF_SIZE %d\n",
-		k, n, GF_SIZE );
-	return NULL ;
-    }
-    retval = malloc(sizeof(struct rs_codec_parms), "new_code");
-    retval->k = k ;
-    retval->n = n ;
-    retval->enc_matrix = NEW_GF_MATRIX(n, k);
-    retval->magic = ( ( FEC_MAGIC ^ k) ^ n) ^ (int)(retval->enc_matrix) ;
-    tmp_m = NEW_GF_MATRIX(n, k);
-    /*
-     * fill the matrix with powers of field elements, starting from 0.
-     * The first row is special, cannot be computed with exp. table.
-     */
-    tmp_m[0] = 1 ;
-    for (col = 1; col < k ; col++)
-	tmp_m[col] = 0 ;
-    for (p = tmp_m + k, row = 0; row < n-1 ; row++, p += k) {
-	for ( col = 0 ; col < k ; col ++ )
-	    p[col] = gf_exp[modnn(row*col)];
-    }
-
-    /*
-     * quick code to build systematic matrix: invert the top
-     * k*k vandermonde matrix, multiply right the bottom n-k rows
-     * by the inverse, and construct the identity matrix at the top.
-     */
-    TICK(ticks[3]);
-    invert_vdm(tmp_m, k); /* much faster than invert_mat */
-    matmul(tmp_m + k*k, tmp_m, retval->enc_matrix + k*k, n - k, k, k);
-    /*
-     * the upper matrix is I so do not bother with a slow multiply
-     */
-    bzero(retval->enc_matrix, k*k*sizeof(unsigned char) );
-    for (p = retval->enc_matrix, col = 0 ; col < k ; col++, p += k+1 )
-	*p = 1 ;
-    free(tmp_m);
-    TOCK(ticks[3]);
-
-    DDB(fprintf(stderr, "--- %ld us to build encoding matrix\n",
-	    ticks[3]);)
-    DEB(pr_matrix(retval->enc_matrix, n, k, "encoding_matrix");)
-    return retval ;
-}
 
 /*
  * fec_encode accepts as input pointers to n data packets of size,
@@ -691,6 +698,7 @@ int rs_codec_decode(struct rs_codec_parms *code,
                     int index[],
                     int size)
 {
+#if 0
   unsigned char *m_dec ; 
   unsigned char **new_pkt ;
   int row, col , k = code->k ;
@@ -727,6 +735,6 @@ int rs_codec_decode(struct rs_codec_parms *code,
   }
   free(new_pkt);
   free(m_dec);
-
+#endif
   return 0;
 }
