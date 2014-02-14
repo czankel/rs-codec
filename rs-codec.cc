@@ -53,24 +53,24 @@
  * and  Lee & Messerschmitt, p. 453.
  */
 
-static char *allPp[] = {    /* GF_BITS	polynomial		*/
-    NULL,		    /*  0	no code			*/
-    NULL,		    /*  1	no code			*/
-    "111",		    /*  2	1+x+x^2			*/
-    "1101",		    /*  3	1+x+x^3			*/
-    "11001",		    /*  4	1+x+x^4			*/
-    "101001",		    /*  5	1+x^2+x^5		*/
-    "1100001",		    /*  6	1+x+x^6			*/
-    "10010001",		    /*  7	1 + x^3 + x^7		*/
-    "101110001",	    /*  8	1+x^2+x^3+x^4+x^8	*/
-    "1000100001",	    /*  9	1+x^4+x^9		*/
-    "10010000001",	    /* 10	1+x^3+x^10		*/
-    "101000000001",	    /* 11	1+x^2+x^11		*/
-    "1100101000001",	    /* 12	1+x+x^4+x^6+x^12	*/
-    "11011000000001",	    /* 13	1+x+x^3+x^4+x^13	*/
-    "110000100010001",	    /* 14	1+x+x^6+x^10+x^14	*/
-    "1100000000000001",	    /* 15	1+x+x^15		*/
-    "11010000000010001"	    /* 16	1+x+x^3+x^12+x^16	*/
+static const char *allPp[] = {  /* GF_BITS	polynomial    */
+  NULL,                   /*  0 no code             */
+  NULL,                   /*  1 no code             */
+  "111",                  /*  2 1+x+x^2             */
+  "1101",                 /*  3 1+x+x^3             */
+  "11001",                /*  4 1+x+x^4             */
+  "101001",               /*  5 1+x^2+x^5           */
+  "1100001",              /*  6 1+x+x^6             */
+  "10010001",             /*  7 1 + x^3 + x^7       */
+  "101110001",            /*  8 1+x^2+x^3+x^4+x^8   */
+  "1000100001",           /*  9 1+x^4+x^9           */
+  "10010000001",          /* 10 1+x^3+x^10          */
+  "101000000001",         /* 11 1+x^2+x^11          */
+  "1100101000001",        /* 12 1+x+x^4+x^6+x^12    */
+  "11011000000001",       /* 13 1+x+x^3+x^4+x^13    */
+  "110000100010001",      /* 14 1+x+x^6+x^10+x^14   */
+  "1100000000000001",     /* 15 1+x+x^15            */
+  "11010000000010001"     /* 16 1+x+x^3+x^12+x^16   */
 };
 
 /*
@@ -82,10 +82,10 @@ static char *allPp[] = {    /* GF_BITS	polynomial		*/
  * In any case the macro gf_mul(x,y) takes care of multiplications.
  */
 
-static unsigned char gf_exp[2*GF_SIZE];	/* index->poly form conversion table	*/
-static int gf_log[GF_SIZE + 1];	/* Poly->index form conversion table	*/
-static unsigned char inverse[GF_SIZE+1];	/* inverse of field elem.		*/
-				/* inv[\alpha**i]=\alpha**(GF_SIZE-i-1)	*/
+static unsigned char gf_exp[2*GF_SIZE]; /* index->poly form conversion table	*/
+static int gf_log[GF_SIZE + 1];         /* Poly->index form conversion table	*/
+static unsigned char inverse[GF_SIZE+1];/* inverse of field elem.		*/
+/* inv[\alpha**i]=\alpha**(GF_SIZE-i-1)	*/
 
 /*
  * modnn(x) computes x % GF_SIZE, where GF_SIZE is 2**GF_BITS - 1,
@@ -142,12 +142,12 @@ static void init_mul_table()
  * multiplication of two numbers can be resolved without calling modnn
  */
 
-static void
+  static void
 generate_gf(void)
 {
   int i;
   unsigned char mask;
-  char *Pp =  allPp[GF_BITS] ;
+  const char *Pp =  allPp[GF_BITS] ;
 
   mask = 1;	/* x ** 0 = 1 */
   gf_exp[GF_BITS] = 0; /* will be updated at the end of the 1st loop */
@@ -220,13 +220,13 @@ generate_gf(void)
  */
 
 #define addmul(dst, src, c, size) \
-    if (c != 0) addmul1(dst, src, c, size)
+  if (c != 0) addmul1(dst, src, c, size)
 
 #define UNROLL 16 /* 1, 4, 8, 16 */
 static void addmul1(unsigned char *dst1,
-                    unsigned char *src1,
-                    unsigned char c,
-                    int size)
+    unsigned char *src1,
+    unsigned char c,
+    int size)
 {
   USE_GF_MULC ;
   register unsigned char *dst = dst1, *src = src1 ;
@@ -269,9 +269,9 @@ static void addmul1(unsigned char *dst1,
  */
 
 static void matmul(unsigned char *a,
-                   unsigned char *b,
-                   unsigned char *c,
-                   int n, int k, int m)
+    unsigned char *b,
+    unsigned char *c,
+    int n, int k, int m)
 {
   int row, col, i ;
 
@@ -294,7 +294,7 @@ static void matmul(unsigned char *a,
  * (Gauss-Jordan, adapted from Numerical Recipes in C)
  * Return non-zero if singular.
  */
-#if 0
+
 static int invert_mat(unsigned char *src, int k)
 {
   unsigned char c, *p ;
@@ -302,11 +302,11 @@ static int invert_mat(unsigned char *src, int k)
 
   int error = 1 ;
 
-  // FIXME statically allocate theses
-  int *indxc = alloca(k*sizeof(int));
-  int *indxr = alloca(k*sizeof(int));
-  int *ipiv = alloca(k*sizeof(int));
-  unsigned char *id_row = alloca(k);
+  // FIXME statically allocate theses??
+  int *indxc = (int*)alloca(k*sizeof(int));
+  int *indxr = (int*)alloca(k*sizeof(int));
+  int *ipiv = (int*)alloca(k*sizeof(int));
+  unsigned char *id_row = (unsigned char*)alloca(k);
 
   bzero(id_row, k*sizeof(unsigned char));
   /*
@@ -406,7 +406,7 @@ found_piv:
     else
       if (indxr[col] != indxc[col] ) {
         for (row = 0 ; row < k ; row++ ) {
-          SWAP( src[row*k + indxr[col]], src[row*k + indxc[col]], unsigned char) ;
+          SWAP(src[row*k + indxr[col]], src[row*k + indxc[col]], unsigned char) ;
         }
       }
   }
@@ -414,7 +414,6 @@ found_piv:
 fail:
   return error ;
 }
-#endif
 
 /*
  * fast code for inverting a vandermonde matrix.
@@ -437,14 +436,14 @@ static int invert_vdm(unsigned char *src, int k)
   if (k == 1) 	/* degenerate case, matrix must be p^0 = 1 */
     return 0 ;
 
-  // FIXME: statically allocate these somehow
+  // FIXME: statically allocate these?
   /*
    * c holds the coefficient of P(x) = Prod (x - p_i), i=0..k-1
    * b holds the coefficient for the matrix inversion
    */
-  c = alloca(k);
-  b = alloca(k);
-  p = alloca(k);
+  c = (unsigned char*)alloca(k);
+  b = (unsigned char*)alloca(k);
+  p = (unsigned char*)alloca(k);
 
   for ( j=1, i = 0 ; i < k ; i++, j+=k ) {
     c[i] = 0 ;
@@ -484,7 +483,7 @@ static int invert_vdm(unsigned char *src, int k)
 /*
  * shuffle move src packets in their position
  */
-#if 0
+
 static int shuffle(unsigned char *pkt[], int index[], int k)
 {
   int i;
@@ -515,8 +514,8 @@ static int shuffle(unsigned char *pkt[], int index[], int k)
  * a vector of k*k elements, in row-major order
  */
 static unsigned char * build_decode_matrix(struct rs_codec_parms *code,
-                                           unsigned char *pkt[],
-                                           int index[])
+    unsigned char *pkt[],
+    int index[])
 {
   int i , k = code->k ;
   unsigned char *matrix = code->dec_matrix;
@@ -524,46 +523,35 @@ static unsigned char * build_decode_matrix(struct rs_codec_parms *code,
 
   for (i = 0, p = matrix ; i < k ; i++, p += k ) {
     if (index[i] < k) {
-      bzero(p, k*sizeof(unsigned char) );
+      memset(p, 0, k*sizeof(unsigned char));
       p[i] = 1 ;
     } else {
-      if (index[i] < code->n )
-        bcopy( &(code->enc_matrix[index[i]*k]), p, k*sizeof(unsigned char) ); 
-      else {
-        fprintf(stderr, "decode: invalid index %d (max %d)\n",
-                index[i], code->n - 1 );
-        free(matrix) ;
-        return NULL ;
-      }
+      memcpy(p, &(code->enc_matrix[index[i]*k]), k*sizeof(unsigned char) ); 
     }
   }
   if (invert_mat(matrix, k)) {
-    free(matrix);
-    matrix = NULL ;
   }
   return matrix ;
 }
-#endif
+
 
 
 // ---------------------------------------------------------------------------
 
-/////////////////////////
-
 static int rs_codec_initialized = 0 ;
-static void
-rs_codec_init()
+
+static void rs_codec_init()
 {
   generate_gf();
   init_mul_table();
+  rs_codec_initialized = 1;
 }
 
 /*
  * create a new encoder, returning a descriptor. This contains k,n and
  * the encoding matrix.
  */
-struct rs_codec_parms *
-rs_codec_new(int k, int n)
+struct rs_codec_parms * rs_codec_create(int k, int n)
 {
   int row, col ;
   unsigned char *p, *tmp_m ;
@@ -575,23 +563,25 @@ rs_codec_new(int k, int n)
 
   if (k > GF_SIZE + 1 || n > GF_SIZE + 1 || k > n ) {
     fprintf(stderr, "Invalid parameters k %d n %d GF_SIZE %d\n",
-            k, n, GF_SIZE );
+        k, n, GF_SIZE );
     return NULL ;
   }
 
-  codec = malloc(sizeof(struct rs_codec_parms));
+  /* Allocate encoder and decoder matrix */
+  codec = new rs_codec_parms();
   codec->k = k ;
   codec->n = n ;
-  codec->enc_matrix = malloc(n * k * sizeof(unsigned char*));
-  codec->dec_matrix = malloc(k * k * sizeof(unsigned char*));
-
+  codec->enc_matrix = new unsigned char[n * k];
+  codec->dec_matrix = new unsigned char[k * k];
 
   /*
    * fill the matrix with powers of field elements, starting from 0.
    * The first row is special, cannot be computed with exp. table.
    */
-  tmp_m = malloc(256 * 256 * sizeof(unsigned char));
-  if (tmp_m != 0)
+
+  tmp_m = new unsigned char[256 * 256];
+
+  if (codec->enc_matrix == 0 || codec->dec_matrix == 0 || tmp_m == 0)
     goto errout;
 
   tmp_m[0] = 1 ;
@@ -612,21 +602,24 @@ rs_codec_new(int k, int n)
   /*
    * the upper matrix is I so do not bother with a slow multiply
    */
-  bzero(codec->enc_matrix, k*k*sizeof(unsigned char) );
+  memset(codec->enc_matrix, 0, k*k*sizeof(unsigned char) );
   for (p = codec->enc_matrix, col = 0 ; col < k ; col++, p += k+1 )
     *p = 1 ;
-  free(tmp_m);
-  return codec ;
+
+  if (tmp_m)
+    delete[] tmp_m;
+
+  return codec;
 
 errout:
   if (tmp_m != 0)
-    free(tmp_m);
+    delete[] tmp_m;
   if (codec != 0)
   {
     if (codec->enc_matrix != 0)
-      free(codec->enc_matrix);
+      delete[] codec->enc_matrix;
     if (codec->dec_matrix != 0)
-      free(codec->dec_matrix);
+      delete[] codec->dec_matrix;
   }
   return 0;
 }
@@ -638,16 +631,15 @@ errout:
  * and then transforming it into a systematic matrix.
  */
 
-void
-rs_codec_free(struct rs_codec_parms *codec)
+void rs_codec_free(struct rs_codec_parms *codec)
 {
   if (codec != 0)
   {
     if (codec->enc_matrix != 0)
-      free(codec->enc_matrix);
+      delete[] codec->enc_matrix;
     if (codec->dec_matrix != 0)
-      free(codec->dec_matrix);
-    free(codec);
+      delete[] codec->dec_matrix;
+    delete codec;
   }
 }
 
@@ -657,29 +649,28 @@ rs_codec_free(struct rs_codec_parms *codec)
  * and produces as output a packet pointed to by fec, computed
  * with index "index".
  */
-void rs_codec_encode(struct rs_codec_parms *code,
-                     unsigned char *src[],
-                     unsigned char *fec,
-                     int index,
-                     int size)
+void rs_codec_encode(struct rs_codec_parms *codec,
+    unsigned char *src[],
+    unsigned char *fec,
+    int index,
+    int size)
 {
-  int i, k = code->k ;
+  int i, k = codec->k ;
   unsigned char *p ;
 
   if (GF_BITS > 8)
     size /= 2 ;
 
-  if (index < k)
-    bcopy(src[index], fec, size * sizeof(unsigned char)) ;
-
-  else if (index < code->n) {
-    p = &(code->enc_matrix[index*k] );
-    bzero(fec, size*sizeof(unsigned char));
-    for (i = 0; i < k ; i++)
-      addmul(fec, src[i], p[i], size ) ;
-  } else
+  if (index < k || index >= codec->n) {
     fprintf(stderr, "Invalid index %d (max %d)\n",
-            index, code->n - 1 );
+        index, codec->n - 1 );
+    return;
+  }
+
+  p = &(codec->enc_matrix[index*k] );
+  memset(fec, 0, size*sizeof(unsigned char));
+  for (i = 0; i < k ; i++)
+    addmul(fec, src[i], p[i], size ) ;
 }
 
 /*
@@ -688,53 +679,53 @@ void rs_codec_encode(struct rs_codec_parms *code,
  *
  * Input:
  *	code: pointer to code descriptor
- *	pkt:  pointers to received packets. They are modified
+ *	pkt:  pointers to received packets and . They are modified
  *	      to store the output packets (in place)
- *	index: pointer to packet indexes (modified)
+ *	index: pointer to packet indices ()
  *	size:    size of each packet
  */
 int rs_codec_decode(struct rs_codec_parms *code,
-                    unsigned char *pkt[],
-                    int index[],
-                    int size)
+    unsigned char *pkt[],
+    int index[],
+    int size)
 {
-#if 0
   unsigned char *m_dec ; 
-  unsigned char **new_pkt ;
-  int row, col , k = code->k ;
+  int row, col, k = code->k ;
 
   if (GF_BITS > 8)
     size /= 2 ;
 
   if (shuffle(pkt, index, k))	/* error if true */
     return 1 ;
+
   m_dec = build_decode_matrix(code, pkt, index);
 
   if (m_dec == NULL)
     return 1 ; /* error */
+
   /*
    * do the actual decoding
+   * use packets pkt[k...] for reconstructed packets
    */
-  new_pkt = my_malloc (k * sizeof (unsigned char * ), "new pkt pointers" );
+  int p = k;
   for (row = 0 ; row < k ; row++ ) {
     if (index[row] >= k) {
-      new_pkt[row] = my_malloc (size * sizeof (unsigned char), "new pkt buffer" );
-      bzero(new_pkt[row], size * sizeof(unsigned char) ) ;
+      unsigned char *new_pkt = pkt[p++];
+      memset(new_pkt, 0, size * sizeof(unsigned char) ) ;
       for (col = 0 ; col < k ; col++ )
-        addmul(new_pkt[row], pkt[col], m_dec[row*k + col], size) ;
+        addmul(new_pkt, pkt[col], m_dec[row*k + col], size) ;
     }
   }
+
   /*
    * move pkts to their final destination
    */
+  p = k;
   for (row = 0 ; row < k ; row++ ) {
     if (index[row] >= k) {
-      bcopy(new_pkt[row], pkt[row], size*sizeof(unsigned char));
-      free(new_pkt[row]);
+      pkt[row] = pkt[p++];
     }
   }
-  free(new_pkt);
-  free(m_dec);
-#endif
+
   return 0;
 }

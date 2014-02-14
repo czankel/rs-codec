@@ -14,8 +14,14 @@
 # machines.
 #
 
-COPT= -O3 -funroll-loops -DGF_BITS=8
+COPT= -O3 -funroll-loops -DGF_BITS=8 
 CFLAGS=$(COPT) -Wall # -DTEST
+CPPFLAGS=$(COPT) -Wall # -DTEST
 
 rs-codec.a: rs-codec.o rs-codec.h
-	echo $LD -o $< $@
+	$(AR) -r $@ $<
+
+test: test.cc rs-codec.a
+
+clean:
+	rm rs-codec.o rs-codec.a test

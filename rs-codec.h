@@ -44,7 +44,7 @@ struct rs_codec_parms {
 };
 
 /* Create an 'rs-codec' */
-extern struct rs_codec_parms* create_rs_codec(int k, int n);
+extern struct rs_codec_parms* rs_codec_create(int k, int n);
 
 /* Free the specified 'rs-codec' */
 extern void rs_codec_free(struct rs_codec_parms* codec);
