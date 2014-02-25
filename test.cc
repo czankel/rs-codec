@@ -30,7 +30,7 @@ static const int c_line_size = 128;	// k <= c_line_size
 #include "stimulus.h"
 #include "reference.h"
 
-#define OLD
+#undef OLD
 
 
 /* 
@@ -112,18 +112,21 @@ class cluster
   const int m_packet_size;
   const int m_buffer_size;
 
-  // Create a buffer for 'num_syspkt' + 'num_parpkt' number of packets of 'pktsize' size and offset (for alignment tests)
-  cluster(int num_syspkt, int num_parpkt, int pktsize, int data_offset, int parity_offset)
-    : m_num_syspkt(num_syspkt)
-      , m_num_parpkt(num_parpkt)
-      , m_pktsize(pktsize)
-      , m_data_offset(data_offset)
-      , m_parity_offset(parity_offset)
-      , m_packet_size(pktsize)
-      , m_buffer_size((pktsize + (data_offset > parity_offset ? data_offset : parity_offset) + 3) & ~3)
-      {
-        m_buffers = new unsigned char[(num_syspkt+num_parpkt) * m_buffer_size];
-      }
+  // Create a buffer for 'num_syspkt' + 'num_parpkt' number of packets of
+  // 'pktsize' size and offset (for alignment tests)
+  cluster(int num_syspkt, int num_parpkt, int pktsize,
+          int data_offset, int parity_offset) :
+    m_num_syspkt(num_syspkt),
+    m_num_parpkt(num_parpkt),
+    m_pktsize(pktsize),
+    m_data_offset(data_offset),
+    m_parity_offset(parity_offset),
+    m_packet_size(pktsize),
+    m_buffer_size((pktsize + (data_offset > parity_offset ?
+                              data_offset : parity_offset) + 3) & ~3)
+    {
+      m_buffers = new unsigned char[(num_syspkt+num_parpkt) * m_buffer_size];
+    }
 
   ~cluster()
   {
@@ -132,11 +135,13 @@ class cluster
 
   unsigned char* get_buffer(int index, bool parity)
   {
-    return &m_buffers[index * m_buffer_size + (parity ? m_parity_offset : m_data_offset) ];
+    return &m_buffers[index * m_buffer_size +
+      (parity ? m_parity_offset : m_data_offset) ];
   }
 
-  // Fill the data buffers from the stimulus lines; copy the 'n-th' byte of each line to the n-th buffer, so that the
-  // buffer has at maximum c_line_count different values that are repeated across the full buffer
+  // Fill the data buffers from the stimulus lines; copy the 'n-th' byte of
+  // each line to the n-th buffer, so that the buffer has at maximum
+  // c_line_count different values that are repeated across the full buffer
   void fill_system_packets()
   {
     unsigned char (*line)[128] = stimulus;
@@ -156,7 +161,7 @@ class cluster
   // Clear the parity packets
   void clear_parity_packets()
   {
-    for (int p = m_num_syspkt; p < m_num_parpkt; p++)
+    for (int p = m_num_syspkt; p < m_num_parpkt + m_num_syspkt; p++)
     {
       memset(m_buffers + p * m_buffer_size, 0, m_buffer_size);
     }
@@ -266,7 +271,7 @@ class Fec
 
     Fec(int k, int n) : m_k(k), m_n(n)
     {
-      m_codec = rs_codec_create(k, n);
+      m_codec = rs_codec_create(n, k);
     }
 
     cluster *create_cluster(int packet_size, int data_offset, int parity_offset)

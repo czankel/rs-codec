@@ -44,7 +44,7 @@ struct rs_codec_parms {
 };
 
 /* Create an 'rs-codec' */
-extern struct rs_codec_parms* rs_codec_create(int k, int n);
+extern struct rs_codec_parms* rs_codec_create(int n, int k);
 
 /* Free the specified 'rs-codec' */
 extern void rs_codec_free(struct rs_codec_parms* codec);
@@ -60,21 +60,28 @@ extern void rs_codec_encode(struct rs_codec_parms *code,
                             int index,
                             int size);
 
+extern void rs_codec_encode_one(struct rs_codec_parms* codec,
+    unsigned char* dst[],
+    unsigned char* src,
+    unsigned int index,
+    unsigned int offset,
+    unsigned int size);
+
 /*
  * rs_decode receives as input a vector of packets, the indexes of
  * packets, and produces the correct vector as output.
  *
  * Input:
  *	code: pointer to code descriptor
- *	pkt:  pointers to received packets. They are modified
- *	      to store the output packets (in place)
- *	index: pointer to packet indexes (modified)
- *	size:    size of each packet
+ *	pkt:  pointers to received packets.
+ *	index: pointer to packet indexes
+ *	size:  pointer to sizes of each packet
+ *	max_size: max size of all packets
  */
-extern int rs_codec_decode(struct rs_codec_parms *code,
-                           unsigned char *pkt[],
+extern int rs_codec_decode(struct rs_codec_parms* code,
+                           unsigned char* pkt[],
                            int index[],
-                           int size);
-// FIXME: should be size[] to avoid memset at the end of a packet?
+                           int size[],
+                           int max_size);
 
 #endif /* RS_CODEC_H */
