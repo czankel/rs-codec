@@ -389,7 +389,7 @@ found_piv:
      * we can optimize the addmul).
      */
     id_row[icol] = 1;
-    if (bcmp(pivot_row, id_row, k*sizeof(unsigned char)) != 0) {
+    if (memcmp(pivot_row, id_row, k*sizeof(unsigned char)) != 0) {
       for (p = src, ix = 0 ; ix < k ; ix++, p += k ) {
         if (ix != icol) {
           c = p[icol] ;
@@ -535,9 +535,7 @@ static unsigned char* build_decode_matrix(struct rs_codec_parms* code,
       memcpy(p, &(code->enc_matrix[index[i]*k]), k*sizeof(unsigned char) ); 
     }
   }
-  if (invert_mat(matrix, k)) {
-  }
-  return matrix ;
+  return !invert_mat(matrix, k) ? matrix : 0;
 }
 
 
