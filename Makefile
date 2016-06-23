@@ -15,8 +15,8 @@
 #
 
 COPT= -O3 -funroll-loops -DGF_BITS=8 
-CFLAGS=$(COPT) -Wall # -DTEST
-CPPFLAGS=$(COPT) -Wall # -DTEST
+CFLAGS=$(COPT) -Wall -fPIC # -DTEST
+CPPFLAGS=$(COPT) -Wall -fPIC # -DTEST
 
 rs-codec.a: rs-codec.o rs-codec.h
 	$(AR) -r $@ $<
